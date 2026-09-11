@@ -71,7 +71,7 @@ try {
       await page.goto(url);
       await openPlugin(page, name === 'mobile');
       const before = await payload(await initial);
-      const frame = page.frameLocator('iframe');
+      const frame = page.frameLocator(production ? 'iframe[title="KMP 全栈示例"]' : 'iframe');
       const canvas = frame.locator('canvas').first();
       await canvas.waitFor();
       await page.waitForTimeout(400);
@@ -104,11 +104,13 @@ try {
       const counterImage = PNG.sync.read(await canvas.screenshot());
       const requestCount = bridgeRequests.length;
       const counterAfter = 20;
+      const incrementBounds = await incrementButton.boundingBox();
+      assert(incrementBounds, 'Counter button must have bounds');
       await context.setOffline(true);
       const start = performance.now();
       for (let index = 0; index < counterAfter; index++) {
         assert(await incrementButton.isEnabled(), 'Local counter must never wait for a server');
-        await incrementButton.click({ force: true });
+        await page.mouse.click(incrementBounds.x + incrementBounds.width / 2, incrementBounds.y + incrementBounds.height / 2, { delay: 50 });
         await frame.getByText(String(index + 1), { exact: true }).waitFor({ timeout: 1000 });
       }
       const offlineClickMs = performance.now() - start;
