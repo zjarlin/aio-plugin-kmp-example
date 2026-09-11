@@ -99,9 +99,6 @@ try {
       };
       await pointer('counter');
       const incrementButton = frame.getByRole('button', { name: '+1', exact: true });
-      const incrementBox = await incrementButton.boundingBox();
-      assert(incrementBox);
-      points.increment = { x: incrementBox.x + incrementBox.width / 2, y: incrementBox.y + incrementBox.height / 2 };
       const counterBefore = 0;
       await frame.getByText('0', { exact: true }).waitFor();
       const counterImage = PNG.sync.read(await canvas.screenshot());
@@ -111,7 +108,7 @@ try {
       const start = performance.now();
       for (let index = 0; index < counterAfter; index++) {
         assert(await incrementButton.isEnabled(), 'Local counter must never wait for a server');
-        await page.mouse.click(points.increment.x, points.increment.y);
+        await incrementButton.click({ force: true });
         await frame.getByText(String(index + 1), { exact: true }).waitFor({ timeout: 1000 });
       }
       const offlineClickMs = performance.now() - start;

@@ -12,7 +12,7 @@ backend/migrations/ Component 计数器的数据库迁移
 shared/             无 UI 依赖的请求响应模型
 ```
 
-根清单选择 Ktor 目标：Tasks 页面读取后端 mock 数据，支持搜索、新增、完成和确认删除；Counter 页面调用同一后端。mock 数据按租户分区，只保存在插件进程内，刷新页面保留，进程重启重置，不用于正式持久化。
+根清单选择 Ktor 目标：Tasks 页面读取后端 mock 数据，支持搜索、新增、完成和确认删除；Counter 使用 Compose 本地状态，`onClick { count++ }` 不发送请求，断网可用，切换标签保留，重新加载插件归零。Tasks 的 mock 数据按租户分区，只保存在插件进程内，刷新页面保留，进程重启重置，不用于正式持久化。
 
 ## 构建 Ktor 全栈包
 
@@ -20,7 +20,7 @@ shared/             无 UI 依赖的请求响应模型
 ./kotlin test -m shared -p jvm
 ./kotlin test -m service -p jvm
 sh scripts/build.sh
-aio plugin package . --git https://github.com/zjarlin/aio-plugin-kmp-example.git --version 0.2.0
+aio plugin package . --git https://github.com/zjarlin/aio-plugin-kmp-example.git --version 0.2.1
 ```
 
 产物为 `dist/frontend/` 和 `dist/plugin.jar`，打包后同属一个内容摘要。JAR 包含业务及依赖，不包含 JVM。宿主的隔离执行器使用清单锁定摘要的 Temurin 21 JRE 镜像；镜像磁盘层可以复用，各实例仍有独立进程和内存配额。默认最大 Java 堆 96 MiB，不等于进程总内存。
