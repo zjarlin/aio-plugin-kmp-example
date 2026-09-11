@@ -1,9 +1,11 @@
-name: Verify plugin
+name: Verify v2 fullstack plugin
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      platform_revision:
+        description: Full aio-platform commit containing the v2 runtime
+        required: true
 
 permissions:
   contents: read
@@ -11,76 +13,49 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: aio_test_admin
+          POSTGRES_PASSWORD: integration-only
+          POSTGRES_DB: aio_test
+        ports: [5432:5432]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    env:
+      AIO_PLATFORM: ${{ github.workspace }}/aio-platform
+      AIO_TEST_DATABASE_URL: postgres://aio_test_admin:integration-only@127.0.0.1:5432/aio_test
+      AIO_TEST_COMPONENT: ${{ github.workspace }}/dist/plugin.wasm
+      AIO_TEST_MIGRATION: ${{ github.workspace }}/backend/migrations/0001_counter.sql
+      KOTLIN_CLI_NO_WELCOME_BANNER: "1"
     steps:
-      - uses: actions/checkout@v7
-
-      - name: 保存提交内发布产物
-        run: cp dist/plugin.wasm "$RUNNER_TEMP/published-plugin.wasm"
-
-      - uses: actions/setup-java@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Check immutable platform revision
+        env:
+          PLATFORM_REVISION: ${{ inputs.platform_revision }}
+        run: test "${#PLATFORM_REVISION}" -eq 40 && ! printf '%s' "$PLATFORM_REVISION" | grep -q '[^0-9a-f]'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          distribution: temurin
-          java-version: "21"
-
-      - uses: dtolnay/rust-toolchain@nightly
-
-      - name: 安装固定的 Component 工具链
+          repository: zjarlin/aio-platform
+          ref: ${{ inputs.platform_revision }}
+          path: aio-platform
+          submodules: true
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87
+      - name: Install component toolchain
         run: |
           cargo install --locked --git https://github.com/Kotlin/wit-bindgen.git --rev 700f2db5e1d01f7bee8d756750c6f631171f520e wit-bindgen-cli
           cargo install --locked wasm-tools --version 1.240.0
-
-      - name: 核对 WIT 生成绑定
-        run: ./scripts/generate-bindings.sh --check
-
-      - name: 构建和测试 KMP 模型
-        env:
-          KOTLIN_CLI_NO_WELCOME_BANNER: "1"
+      - name: Generate, build and test
         run: |
-          ./kotlin build -m model -p jvm -p wasmJs -p wasmWasi
-          ./kotlin test -m model -p jvm
-
-      - name: 构建并核对 Wasm Component
+          sh scripts/generate-bindings.sh
+          git diff --exit-code -- backend/component/src
+          ./kotlin test -m shared -p jvm
+          ./kotlin test -m service -p jvm
+          sh scripts/build.sh
+          sh scripts/build-component.sh
+      - name: Verify real Kotlin component and PostgreSQL isolation
+        working-directory: aio-platform
         run: |
-          ./scripts/build-component.sh
-          git diff --exit-code -- component/src
-
-      - name: 恢复并验证提交内发布产物
-        run: |
-          cp "$RUNNER_TEMP/published-plugin.wasm" dist/plugin.wasm
-          wasm-tools validate --features component-model dist/plugin.wasm
-          wasm-tools component wit dist/plugin.wasm
-
-      - name: 检出 AIO 校验器
-        uses: actions/checkout@v7
-        with:
-          repository: zjarlin/aio
-          ref: fd343767a0e74de974d8a57abeeae06032602a82
-          path: aio-host-source
-          submodules: recursive
-
-      - name: 验证 AIO 插件协议
-        run: cargo +nightly run --manifest-path aio-host-source/Cargo.toml --bin aio -- plugin validate "$GITHUB_WORKSPACE"
-
-      - name: 发布已验证的插件
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.AIO_PLUGIN_PUBLISH_URL != ''
-        env:
-          AIO_PLUGIN_PUBLISH_TOKEN: ${{ secrets.AIO_PLUGIN_PUBLISH_TOKEN }}
-          AIO_PLUGIN_PUBLISH_URL: ${{ vars.AIO_PLUGIN_PUBLISH_URL }}
-        run: |
-          if [ -z "$AIO_PLUGIN_PUBLISH_TOKEN" ]; then
-            exit 0
-          fi
-          cargo +nightly run --manifest-path aio-host-source/Cargo.toml --bin aio -- plugin publish "$GITHUB_WORKSPACE"
-
-      - name: 检出 Wasmtime 运行时宿主
-        uses: actions/checkout@v7
-        with:
-          repository: zjarlin/aio-public-shell
-          ref: 0a6b401ff1792059237495c8526515c1919b3805
-          path: aio-public-shell
-
-      - name: 验证 KMP Component 租户隔离
-        env:
-          AIO_TEST_WASM_COMPONENT: ${{ github.workspace }}/dist/plugin.wasm
-        working-directory: aio-public-shell
-        run: cargo test --no-default-features --features server activates_reuses_and_destroys_tenant_instances -- --ignored
+          psql "$AIO_TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -c 'REVOKE ALL ON SCHEMA public FROM PUBLIC'
+          cargo test -p az-plugin-runtime --lib -- --include-ignored
+          cargo test -p az-plugin-runtime --test component -- --ignored --nocapture

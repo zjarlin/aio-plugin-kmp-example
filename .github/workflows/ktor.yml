@@ -1,0 +1,21 @@
+name: Verify Compose and Ktor
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  fullstack:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      KOTLIN_CLI_NO_WELCOME_BANNER: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Verify shared models and real HTTP service
+        run: |
+          ./kotlin test -m shared -p jvm
+          ./kotlin test -m service -p jvm
+      - name: Build complete frontend and backend
+        run: sh scripts/build.sh

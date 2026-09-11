@@ -1,3 +1,5 @@
 modules:
-  - ./component
-  - ./model
+  - ./backend/component
+  - ./backend/service
+  - ./frontend
+  - ./shared
