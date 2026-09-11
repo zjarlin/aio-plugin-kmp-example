@@ -20,6 +20,7 @@ import site.addzero.aio.example.tasks.TasksPage
 @Composable
 internal fun WorkbenchPage() {
     var selected by remember { mutableStateOf(0) }
+    var count by remember { mutableStateOf(0L) }
     MaterialTheme(colorScheme = lightColorScheme(
         primary = Color(0xFF167451), onPrimary = Color.White,
         background = Color.White, surface = Color.White, onSurface = Color(0xFF202124),
@@ -34,7 +35,7 @@ internal fun WorkbenchPage() {
                 }
                 when (selected) {
                     0 -> TasksPage()
-                    else -> CounterPage()
+                    else -> CounterPage(count = count, onIncrement = { count++ })
                 }
             }
         }

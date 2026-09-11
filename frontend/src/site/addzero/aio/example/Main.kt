@@ -8,9 +8,11 @@ import kotlin.js.JsString
 import kotlin.js.js
 
 private fun initialScreen(): JsString = js("document.body.dataset.screen || 'tasks'")
+private fun completeStartup(): Unit = js("document.getElementById('startup')?.remove()")
 
 @OptIn(ExperimentalComposeUiApi::class)
 fun main() {
     val counter = initialScreen().toString() == "counter"
-    ComposeViewport { if (counter) CounterPage() else WorkbenchPage() }
+    ComposeViewport { if (counter) PersistentCounterPage() else WorkbenchPage() }
+    completeStartup()
 }

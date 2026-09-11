@@ -24,7 +24,7 @@ function responseFor(page, method, path) {
     if (!(production ? /^\/api\/runtime\/frontend\/[^/]+\/request$/.test(endpoint) : endpoint === '/invoke')) return false;
     const input = response.request().postDataJSON();
     return input?.method === method && input?.path === path;
-  }, { timeout: 60000 });
+  }, { timeout: 180000 });
   pending.catch(() => {});
   return pending;
 }
@@ -51,6 +51,13 @@ try {
     const context = await browser.newContext({ viewport, storageState: process.env.AIO_STORAGE_STATE });
     const page = await context.newPage();
     const errors = [];
+    const counterRequests = [];
+    const bridgeRequests = [];
+    page.on('request', request => {
+      if (!/\/(invoke|request)$/.test(new URL(request.url()).pathname)) return;
+      bridgeRequests.push(request.url());
+      if (request.postDataJSON()?.path === '/counter') counterRequests.push(request.url());
+    });
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
     try {
@@ -90,15 +97,38 @@ try {
         await page.mouse.click(points[key].x, points[key].y);
         await page.waitForTimeout(300);
       };
-      const calibrateCounter = responseFor(page, 'GET', '/counter');
       await pointer('counter');
-      await payload(await calibrateCounter);
-      const incrementBox = await frame.getByRole('button', { name: '+1', exact: true }).boundingBox();
+      const incrementButton = frame.getByRole('button', { name: '+1', exact: true });
+      const incrementBox = await incrementButton.boundingBox();
       assert(incrementBox);
       points.increment = { x: incrementBox.x + incrementBox.width / 2, y: incrementBox.y + incrementBox.height / 2 };
+      const counterBefore = 0;
+      await frame.getByText('0', { exact: true }).waitFor();
+      const counterImage = PNG.sync.read(await canvas.screenshot());
+      const requestCount = bridgeRequests.length;
+      const counterAfter = 20;
+      await context.setOffline(true);
+      const start = performance.now();
+      for (let index = 0; index < counterAfter; index++) {
+        assert(await incrementButton.isEnabled(), 'Local counter must never wait for a server');
+        await page.mouse.click(points.increment.x, points.increment.y);
+        await frame.getByText(String(index + 1), { exact: true }).waitFor({ timeout: 1000 });
+      }
+      const offlineClickMs = performance.now() - start;
+      assert.equal(bridgeRequests.length, requestCount, 'Local clicks must not send requests');
+      await context.setOffline(false);
+      const counterChanged = PNG.sync.read(await canvas.screenshot());
+      let changed = 0;
+      for (let i = 0; i < counterImage.data.length; i += 4) if (counterImage.data.readUInt32BE(i) !== counterChanged.data.readUInt32BE(i)) changed++;
+      assert(changed > 30, 'Counter must repaint');
       const calibrateTasks = responseFor(page, 'GET', '/tasks');
       await pointer('tasks');
       await payload(await calibrateTasks);
+      await pointer('counter');
+      await frame.getByText(String(counterAfter), { exact: true }).waitFor();
+      const returnTasks = responseFor(page, 'GET', '/tasks');
+      await pointer('tasks');
+      await payload(await returnTasks);
 
       const title = `Acceptance ${name} ${Date.now()}`;
       await click(frame.getByRole('button', { name: 'New task', exact: true }));
@@ -139,27 +169,14 @@ try {
       await payload(await removal, 204);
       assert.equal((await payload(await removedList)).total, before.total);
 
-      const counterGet = responseFor(page, 'GET', '/counter');
-      await pointer('counter');
-      const counterBefore = (await payload(await counterGet)).count;
-      await page.waitForTimeout(300);
-      const counterImage = PNG.sync.read(await canvas.screenshot());
-      const increment = responseFor(page, 'POST', '/counter');
-      await pointer('increment');
-      const counterAfter = (await payload(await increment)).count;
-      assert.equal(counterAfter, counterBefore + 1);
-      await page.waitForTimeout(400);
-      const counterChanged = PNG.sync.read(await canvas.screenshot());
-      let changed = 0;
-      for (let i = 0; i < counterImage.data.length; i += 4) if (counterImage.data.readUInt32BE(i) !== counterChanged.data.readUInt32BE(i)) changed++;
-      assert(changed > 30, 'Counter must repaint');
       const reloaded = responseFor(page, 'GET', '/tasks');
       await page.reload();
       await openPlugin(page, name === 'mobile');
       await payload(await reloaded);
-      const restored = responseFor(page, 'GET', '/counter');
       await click(frame.getByRole('button', { name: 'Counter', exact: true }));
-      assert.equal((await payload(await restored)).count, counterAfter);
+      await frame.getByText('0', { exact: true }).waitFor();
+      assert.deepEqual(counterRequests, [], 'Workbench counter must remain entirely local');
+      await page.screenshot({ path: `${output}/${name}-counter.png` });
       const tasks = responseFor(page, 'GET', '/tasks');
       await click(frame.getByRole('button', { name: 'Tasks', exact: true }));
       await payload(await tasks);
@@ -175,12 +192,15 @@ try {
       assert.deepEqual(isolation, { parentBlocked: true, cookieBlocked: true });
       assert.deepEqual(errors, []);
       await page.screenshot({ path: `${output}/${name}.png`, fullPage: true });
-      reports.push({ name, tasks: before.total, crud: true, counterBefore, counterAfter, changedPixels: changed, canvasColors: colors.size, isolation, errors });
+      reports.push({ name, tasks: before.total, crud: true, counterBefore, counterAfter, offlineClickMs, counterRequests: counterRequests.length, changedPixels: changed, canvasColors: colors.size, isolation, errors });
     } catch (error) {
       await page.screenshot({ path: `${output}/${name}-failure.png` });
       console.error(error, errors);
       throw error;
-    } finally { await context.close(); }
+    } finally {
+      if (production && process.env.AIO_ACCOUNT) await context.request.post(new URL('/api/auth/logout', url).href);
+      await context.close();
+    }
   }
   console.log(JSON.stringify(reports, null, 2));
 } finally { await browser.close(); }

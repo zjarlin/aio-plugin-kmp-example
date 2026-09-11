@@ -12,7 +12,7 @@ path = "dist/frontend"
 
 [plugin.marketplace]
 title = "KMP 全栈示例"
-summary = "同仓 Compose Web、Ktor REST 与共享 Kotlin 模型，包含 mock 任务工作台与服务端计数。"
+summary = "同仓 Compose Web、Ktor REST 与共享 Kotlin 模型，包含 mock 任务工作台与本地交互计数。"
 license = "MIT"
 tags = ["example", "kotlin", "compose", "ktor", "full-stack"]
 
