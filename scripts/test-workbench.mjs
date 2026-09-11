@@ -10,6 +10,14 @@ await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 const reports = [];
 
+async function openPlugin(page, mobile) {
+  if (!production) return;
+  await page.getByRole('navigation', { name: '场景' }).getByRole('button', { name: '社区插件', exact: true }).click();
+  if (mobile) await page.getByRole('button', { name: '打开菜单', exact: true }).click();
+  const sidebar = mobile ? page.getByRole('dialog') : page.locator('.application-shell__sidebar');
+  await sidebar.getByRole('button', { name: 'KMP 全栈示例', exact: true }).click();
+}
+
 function responseFor(page, method, path) {
   const pending = page.waitForResponse(response => {
     const endpoint = new URL(response.url()).pathname;
@@ -54,12 +62,7 @@ try {
       }
       const initial = responseFor(page, 'GET', '/tasks');
       await page.goto(url);
-      if (production) {
-        await page.getByRole('navigation', { name: '场景' }).getByRole('button', { name: '社区插件', exact: true }).click();
-        if (name === 'mobile') await page.getByRole('button', { name: '打开菜单', exact: true }).click();
-        const sidebar = name === 'mobile' ? page.getByRole('dialog') : page.locator('.application-shell__sidebar');
-        await sidebar.getByRole('button', { name: 'KMP 全栈示例', exact: true }).click();
-      }
+      await openPlugin(page, name === 'mobile');
       const before = await payload(await initial);
       const frame = page.frameLocator('iframe');
       const canvas = frame.locator('canvas').first();
@@ -152,6 +155,7 @@ try {
       assert(changed > 30, 'Counter must repaint');
       const reloaded = responseFor(page, 'GET', '/tasks');
       await page.reload();
+      await openPlugin(page, name === 'mobile');
       await payload(await reloaded);
       const restored = responseFor(page, 'GET', '/counter');
       await click(frame.getByRole('button', { name: 'Counter', exact: true }));
@@ -174,7 +178,7 @@ try {
       reports.push({ name, tasks: before.total, crud: true, counterBefore, counterAfter, changedPixels: changed, canvasColors: colors.size, isolation, errors });
     } catch (error) {
       await page.screenshot({ path: `${output}/${name}-failure.png` });
-      console.error(error, errors, await page.frameLocator('iframe').locator('body').ariaSnapshot());
+      console.error(error, errors);
       throw error;
     } finally { await context.close(); }
   }
