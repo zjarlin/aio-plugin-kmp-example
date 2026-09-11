@@ -83,6 +83,7 @@ try {
         points[key] = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
       }
       const pointer = async key => {
+        await page.waitForTimeout(500);
         await page.mouse.click(points[key].x, points[key].y);
         await page.waitForTimeout(300);
       };
