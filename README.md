@@ -47,4 +47,6 @@ sh scripts/build-component.sh
 
 `backend/component/aio-plugin.toml` 保留 `schema_version = 2`；`dist/plugin.wasm` 不包含 JVM，使用 `counter.html` 作为前端入口。数据库通过宿主参数化查询能力访问，业务代码不持有 PostgreSQL 凭据。官方 WASI adapter 的版本和摘要由构建脚本锁定。
 
+v2 清单不要求填写 `runtime.kind`，由 Component 产物和 WIT 校验决定执行方式。前端、后端和数据库迁移作为同一个版本打包；页面入口由 Kotlin 的 `describe` 提供，不在清单重复定义菜单或子插件。平台 `az-plugin-bundle` 开发工具已能生成和验证整包，尚不接入旧公网发布接口。
+
 v2 Component 的生产校验与发布链仍在迁移，不能用旧 CLI 发布该目标，也不能删除版本标记绕过校验。真实数据库、租户隔离和实例重建测试在平台 `lib/plugin/runtime/tests/component.rs`；`scripts/test-browser.mjs` 对应 Component 开发预览。Ktor 示例的上线不代表整个平台 v2 迁移完成。

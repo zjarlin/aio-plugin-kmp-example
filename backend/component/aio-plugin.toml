@@ -1,7 +1,6 @@
 schema_version = 2
 
 [plugin.runtime]
-kind = "wasm-component"
 artifact = "dist/plugin.wasm"
 host_version = ">=2026.9.11"
 
@@ -11,18 +10,5 @@ path = "dist/frontend"
 [plugin.database]
 migrations = "backend/migrations"
 
-[plugin.marketplace]
-title = "KMP Counter"
-summary = "同仓 Compose 浏览器前端、Kotlin Component 后端与 PostgreSQL 持久化。"
-license = "MIT"
-tags = ["example", "kotlin", "kmp", "wasm-component", "full-stack", "preview"]
-
 [plugin.capabilities]
-network = []
-filesystem = []
 database = true
-
-[[plugin.subplugins]]
-id = "counter"
-pages = ["counter"]
-routes = ["counter"]
