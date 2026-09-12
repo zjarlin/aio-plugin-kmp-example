@@ -33,6 +33,8 @@ aio plugin package . --git https://github.com/zjarlin/aio-plugin-kmp-example.git
 
 Kotlin Toolchain wrapper 固定 `0.12.0-dev-4233` 及 SHA256，Kotlin `2.4.10`，Compose `1.12.0-beta03`，Ktor `3.5.2`。构建由隔离构建服务完成，生产安装只验证并激活产物。浏览器资源全部随包提供，不使用公网字体或 CDN。
 
+各模块通过根目录 `build.module-template.yaml` 统一依赖源，使用 Maven Central 官方地址和 JetBrains 提供的 Google Maven 缓存。
+
 ## 本地验证
 
 ```sh

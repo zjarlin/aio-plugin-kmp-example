@@ -1,5 +1,7 @@
 product: wasm-wasi/app
 
+apply: [//build.module-template.yaml]
+
 description: "AIO Kotlin Wasm Component 导出适配器"
 
 dependencies:

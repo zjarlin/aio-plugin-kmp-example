@@ -2,6 +2,8 @@ product:
   type: kmp/lib
   platforms: [jvm, wasmJs, wasmWasi]
 
+apply: [//build.module-template.yaml]
+
 description: "AIO Kotlin Component 跨平台协议模型"
 
 dependencies:
