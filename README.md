@@ -4,7 +4,7 @@
 
 ![Counter 页面](docs/preview.png)
 
-## 自动发布
+## 自动发布与滚动更新
 
 仓库通过 `aio-delivery.toml` 加入自动交付。推送默认分支后，252 构建服务执行测试、构建并发布完整版本；已安装的壳自动跟随最新通过验证的版本，保留当前 Tasks / Counter 标签。构建失败时继续使用原版本。README 与本地图片随源码提交保存，不依赖 GitHub Actions。
 
