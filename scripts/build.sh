@@ -1,5 +1,7 @@
 #!/bin/sh
 set -eu
+KOTLIN_CLI_NO_WELCOME_BANNER=1 ./kotlin test -m shared -p jvm
+KOTLIN_CLI_NO_WELCOME_BANNER=1 ./kotlin test -m service -p jvm
 
 KOTLIN_CLI_NO_WELCOME_BANNER=1 ./kotlin build -m frontend -p wasmJs -v release
 KOTLIN_CLI_NO_WELCOME_BANNER=1 ./kotlin package -m service -p jvm -f executable-jar

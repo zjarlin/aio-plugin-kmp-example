@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.js.ExperimentalWasmJsInterop::class)
+
 package site.addzero.aio.example
 
 import androidx.compose.foundation.layout.Column
@@ -16,10 +18,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import site.addzero.aio.example.tasks.TasksPage
+import kotlin.js.js
+
+private fun selectedCounter(): Boolean = js("location.hash === '#counter'")
+private fun selectRoute(counter: Boolean): Unit = js("location.hash = counter ? '#counter' : '#tasks'")
 
 @Composable
 internal fun WorkbenchPage() {
-    var selected by remember { mutableStateOf(0) }
+    var selected by remember { mutableStateOf(if (selectedCounter()) 1 else 0) }
     var count by remember { mutableStateOf(0L) }
     MaterialTheme(colorScheme = lightColorScheme(
         primary = Color(0xFF167451), onPrimary = Color.White,
@@ -30,7 +36,7 @@ internal fun WorkbenchPage() {
             Column {
                 PrimaryTabRow(selectedTabIndex = selected) {
                     listOf("Tasks", "Counter").forEachIndexed { index, label ->
-                        Tab(selected = selected == index, onClick = { selected = index }, text = { Text(label) })
+                        Tab(selected = selected == index, onClick = { selected = index; selectRoute(index == 1) }, text = { Text(label) })
                     }
                 }
                 when (selected) {

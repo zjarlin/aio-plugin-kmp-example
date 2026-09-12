@@ -1,6 +1,12 @@
-# aio-plugin-kmp-example
+# KMP 全栈示例
 
 一个功能仓库，真实 Compose 前端、Kotlin 后端和共享模型共同发布。壳只挂载隔离页面、转发受限请求和管理整包生命周期，不把 JVM 编进 Rust，也不代画插件控件。
+
+![Counter 页面](docs/preview.png)
+
+## 自动发布
+
+仓库通过 `aio-delivery.toml` 加入自动交付。推送默认分支后，252 构建服务执行测试、构建并发布完整版本；已安装的壳自动跟随最新通过验证的版本，保留当前 Tasks / Counter 标签。构建失败时继续使用原版本。README 与本地图片随源码提交保存，不依赖 GitHub Actions。
 
 ## 模块
 
@@ -25,7 +31,7 @@ aio plugin package . --git https://github.com/zjarlin/aio-plugin-kmp-example.git
 
 产物为 `dist/frontend/` 和 `dist/plugin.jar`，打包后同属一个内容摘要。JAR 包含业务及依赖，不包含 JVM。宿主的隔离执行器使用清单锁定摘要的 Temurin 21 JRE 镜像；镜像磁盘层可以复用，各实例仍有独立进程和内存配额。默认最大 Java 堆 96 MiB，不等于进程总内存。
 
-Kotlin Toolchain wrapper 固定 `0.12.0-dev-4233` 及 SHA256，Kotlin `2.4.10`，Compose `1.12.0-beta03`，Ktor `3.5.2`。构建在作者机器或 CI 完成，生产安装不执行构建脚本。浏览器资源全部随包提供，不使用公网字体或 CDN。
+Kotlin Toolchain wrapper 固定 `0.12.0-dev-4233` 及 SHA256，Kotlin `2.4.10`，Compose `1.12.0-beta03`，Ktor `3.5.2`。构建由隔离构建服务完成，生产安装只验证并激活产物。浏览器资源全部随包提供，不使用公网字体或 CDN。
 
 ## 本地验证
 
