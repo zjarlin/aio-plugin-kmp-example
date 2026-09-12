@@ -45,7 +45,7 @@ internal fun TasksPage() {
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("KMP Workspace", style = MaterialTheme.typography.titleLarge)
+                    Text("任务工作台示例", style = MaterialTheme.typography.titleLarge)
                     Text("Tasks", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text("Demo", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
