@@ -17,7 +17,7 @@ internal fun CounterPage(count: Long, onIncrement: () -> Unit) {
         modifier = Modifier.fillMaxSize().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text("KMP Counter1", style = MaterialTheme.typography.titleLarge)
+        Text("KMP Counter", style = MaterialTheme.typography.titleLarge)
         Text(count.toString(), style = MaterialTheme.typography.displayMedium)
         Button(onClick = onIncrement) { Text("+1") }
     }
