@@ -15,7 +15,7 @@ async function openPlugin(page, mobile) {
   await page.getByRole('navigation', { name: '场景' }).getByRole('button', { name: '社区插件', exact: true }).click();
   if (mobile) await page.getByRole('button', { name: '打开菜单', exact: true }).click();
   const sidebar = mobile ? page.getByRole('dialog') : page.locator('.application-shell__sidebar');
-  await sidebar.getByRole('button', { name: 'KMP 全栈示例', exact: true }).click();
+  await sidebar.getByRole('button', { name: '任务工作台示例', exact: true }).click();
 }
 
 function responseFor(page, method, path) {
@@ -71,7 +71,7 @@ try {
       await page.goto(url);
       await openPlugin(page, name === 'mobile');
       const before = await payload(await initial);
-      const frame = page.frameLocator(production ? 'iframe[title="KMP 全栈示例"]' : 'iframe');
+      const frame = page.frameLocator(production ? 'iframe[title="任务工作台示例"]' : 'iframe');
       const canvas = frame.locator('canvas').first();
       await canvas.waitFor();
       await page.waitForTimeout(400);

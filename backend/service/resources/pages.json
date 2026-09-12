@@ -1,7 +1,7 @@
 [
   {
     "id": "kmp-fullstack",
-    "label": "KMP 全栈示例",
+    "label": "任务工作台示例",
     "icon": "layout",
     "scene": { "id": "community", "label": "社区插件" },
     "menu_path": [],
